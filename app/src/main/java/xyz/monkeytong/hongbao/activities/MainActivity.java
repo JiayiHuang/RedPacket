@@ -37,6 +37,7 @@ import xyz.monkeytong.hongbao.utils.log2file.LogFileEngineFactory;
 public class MainActivity extends Activity implements AccessibilityManager.AccessibilityStateChangeListener {
 
     private static final int REQ_CODE_WRITE = 0x101;
+    private static final String TAG = "HongbaoService";
     //开关切换按钮
     private TextView pluginStatusText;
     private ImageView pluginStatusIcon;

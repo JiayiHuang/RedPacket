@@ -105,6 +105,7 @@ public class HongbaoService extends AccessibilityService implements SharedPrefer
     public void onAccessibilityEvent(AccessibilityEvent event) {
         if (sharedPreferences == null) return;
         Log.i(TAG, ">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>> New Event <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<");
+
         setCurrentActivityName(event);
 
         checkActivityNameChangedOrNot();
@@ -113,14 +114,14 @@ public class HongbaoService extends AccessibilityService implements SharedPrefer
         // 是否从红包领取详情页返回
         if (sharedPreferences.getBoolean("pref_back_from_receive_list", true)
                 && event.getClassName().toString().contains(ACTIVITY_NAME_DETAIL_LIST)) {
-            String timeDelayStr = sharedPreferences.getString("pref_back_from_receive_list_delay", "100");
-            int timeDelay = 100;
+            String timeDelayStr = sharedPreferences.getString("pref_back_from_receive_list_delay", "200");
+            int timeDelay = 200;
             try {
                 timeDelay = Integer.parseInt(timeDelayStr);
             } catch (Exception ignored) {
 
             } finally {
-                timeDelay = timeDelay <= 100 ? 100 : timeDelay;
+                timeDelay = timeDelay <= 200 ? 200 : timeDelay;
             }
             new Handler().postDelayed(new Runnable() {
                 @Override
@@ -129,12 +130,6 @@ public class HongbaoService extends AccessibilityService implements SharedPrefer
                 }
             }, timeDelay);
             return;
-        }
-
-        if (currentActivityName.contains(ACTIVITY_NAME_WAIT_OPEN)
-                && android.os.Build.VERSION.SDK_INT > 23) {
-            //当前在红包待开页面，去拆红包
-            openPacket();
         }
         /* 检测通知消息 */
         if (!mHasToDoRedPacket) {
@@ -145,7 +140,16 @@ public class HongbaoService extends AccessibilityService implements SharedPrefer
 //            if (sharedPreferences.getBoolean("pref_watch_list", false) && watchList(event)) return;
             mListMutex = false;
         }
+        if (currentActivityName.contains(ACTIVITY_NAME_WAIT_OPEN)
+                && android.os.Build.VERSION.SDK_INT > 23) {
+            //当前在红包待开页面，去拆红包
+//            this.rootNodeInfo = getRootInActiveWindow();
+//            Log.i(TAG, "onAccessibilityEvent: ==== rootNodeInfo == null ? " + (rootNodeInfo == null));
+            // 从列表页打开红包 --> 红包开启页 获取不到 Node
+//            checkNodeInfo(event);
+            openPacket();
 
+        }
         if (!mIsWatching) {
             mIsWatching = true;
             // pref_watch_list：自动拆红包
@@ -179,7 +183,7 @@ public class HongbaoService extends AccessibilityService implements SharedPrefer
         this.rootNodeInfo = getRootInActiveWindow();
         Log.i(TAG, "watchChat: ------------------------------------------------- rootNodeInfo==null?" + (rootNodeInfo == null));
         int packNum = getPackNum(WECHAT_VIEW_OTHERS_CH);
-        if (currentActivityName.equals("com.tencent.mm/.ui.LauncherUI")) {
+        if (currentActivityName.contains("LauncherUI")) {
 //            Log.d(TAG, "packNum == " + packNum + ", prePackNum == " + currentPackNum + ", isLastOutOrExpire == " + isLastOutOrExpire);
             if (packNum != 0 && packNum != currentPackNum) {
 //                isLastOutOrExpire = false;
@@ -223,25 +227,26 @@ public class HongbaoService extends AccessibilityService implements SharedPrefer
                     },
                     delayFlag);
         }
-        Log.i(TAG, ">>>>>>>>>>>>>>>>\n mLuckyMoneyPicked == " + mLuckyMoneyPicked
-                + ", \n mHasToDoRedPacket == " + mHasToDoRedPacket
-                + ", \n currentActivityName == " + currentActivityName
-                + ", \n mUnpackCount == " + mUnpackCount
-        );
     }
 
     private void openPacket() {
         Log.i(TAG, "openPacket: -----------------------------------------------------------");
-        DisplayMetrics metrics = getResources().getDisplayMetrics();
-        float dpi = metrics.density;
-        if (android.os.Build.VERSION.SDK_INT <= 23) {
-            mUnpackNode.performAction(AccessibilityNodeInfo.ACTION_CLICK);
-        } else {
-            if (android.os.Build.VERSION.SDK_INT > 23) {
-                Path path = new Path();
+        if (mUnpackNode != null) {
+            boolean b = mUnpackNode.performAction(AccessibilityNodeInfo.ACTION_CLICK);
+            Log.i(TAG, "openPacket: node - performAction == " + b);
+            if (b)
+                return;
+        }
+        simulateClick();
+    }
 
-//                386 1018 694 1326
-//
+    private void simulateClick() {
+        if (android.os.Build.VERSION.SDK_INT > 23) {
+            DisplayMetrics metrics = getResources().getDisplayMetrics();
+            float dpi = metrics.density;
+            Path path = new Path();
+//                sumsung s7 edge   386 1018 694 1326
+//                mi5               [386,1012][694,1320]
 //
 //                if (640 == dpi) {
 //                    path.moveTo(720, 1575);
@@ -249,26 +254,28 @@ public class HongbaoService extends AccessibilityService implements SharedPrefer
 //                    path.moveTo(540, 1060);
 //                }
 //                180 * 3 391*3
-                path.moveTo(180 * dpi, 391 * dpi);
-                GestureDescription.Builder builder = new GestureDescription.Builder();
-                GestureDescription gestureDescription = builder.addStroke(new GestureDescription.StrokeDescription(path, 100, 50)).build();
-                dispatchGesture(gestureDescription, new GestureResultCallback() {
-                    @Override
-                    public void onCompleted(GestureDescription gestureDescription) {
-                        Log.i(TAG, "onCompleted");
-                        mHasToDoRedPacket = false;
-                        super.onCompleted(gestureDescription);
-                    }
+            float x = metrics.widthPixels / 2.0f;
+            float y = 391 * dpi;
+            path.moveTo(x, y);
+            Log.i(TAG, "openPacket: simulateClick: x == " + x + ", y == " + y);
+            GestureDescription.Builder builder = new GestureDescription.Builder();
+            GestureDescription gd = builder.addStroke(new GestureDescription.StrokeDescription(path, 10, 50)).build();
+            dispatchGesture(gd, new GestureResultCallback() {
+                @Override
+                public void onCompleted(GestureDescription gestureDescription) {
+                    Log.i(TAG, "openPacket: onCancelled");
+                    mHasToDoRedPacket = false;
+                    super.onCompleted(gestureDescription);
+                }
 
-                    @Override
-                    public void onCancelled(GestureDescription gestureDescription) {
-                        Log.i(TAG, "onCancelled");
-                        mHasToDoRedPacket = false;
-                        super.onCancelled(gestureDescription);
-                    }
-                }, null);
+                @Override
+                public void onCancelled(GestureDescription gestureDescription) {
+                    Log.i(TAG, "openPacket: onCancelled");
+                    mHasToDoRedPacket = false;
+                    super.onCancelled(gestureDescription);
+                }
+            }, null);
 
-            }
         }
     }
 
@@ -363,30 +370,20 @@ public class HongbaoService extends AccessibilityService implements SharedPrefer
      * 已经戳开红包，但未点击开红包，通过遍历来找“開”的按钮Button
      */
     private AccessibilityNodeInfo findOpenButton(AccessibilityNodeInfo node) {
-        Log.i(TAG, "findOpenButton ======================>>>>>>>>>>>>>");
+//        Log.i(TAG, "findOpenButton ======================>>>>>>>>>>>>>");
         if (node == null)
             return null;
-
         //非layout元素
-        Log.i(TAG, "findOpenButton # node.getChildCount == " + (node.getChildCount()));
+//        Log.i(TAG, "findOpenButton # node.getChildCount == " + (node.getChildCount()));
         if (node.getChildCount() == 0) {
             if ("android.widget.Button".equals(node.getClassName()))
                 return node;
             else
                 return null;
         }
-
         //layout元素，遍历找button
         AccessibilityNodeInfo button;
         for (int i = 0; i < node.getChildCount(); i++) {
-//            String nodeClassName = "";
-//            try {
-//                nodeClassName = (String) node.getChild(i).getClassName();
-//            } catch (Exception e) {
-//                e.printStackTrace();
-//            }
-//            Log.i(TAG, "findOpenButton # nodeClassName[" + i + "] == " + (nodeClassName));
-
             button = findOpenButton(node.getChild(i));
             if (button != null)
                 return button;
@@ -400,18 +397,18 @@ public class HongbaoService extends AccessibilityService implements SharedPrefer
 
         if (this.rootNodeInfo == null) return;
 
-        if (signature.commentString != null) {// 判断自动回复
-            sendComment();
-            signature.commentString = null;
-        }
+//        if (signature.commentString != null) {// 判断自动回复
+//            sendComment();
+//            signature.commentString = null;
+//        }
 
         /* 聊天会话窗口，遍历节点匹配“领取红包”和"查看红包" */
 //        AccessibilityNodeInfo node1 = (sharedPreferences.getBoolean("pref_watch_self", false)) ? // 是否监听自己发的红包
 //                this.getTheLastNode(WECHAT_VIEW_OTHERS_CH, WECHAT_VIEW_SELF_CH) : this.getTheLastNode(WECHAT_VIEW_OTHERS_CH);
         AccessibilityNodeInfo node1 = this.getTheLastNode(WECHAT_VIEW_OTHERS_CH);// 只监听别人发的红包
 
-        Log.i(TAG, "checkNodeInfo # node1 == null : " + (node1 == null));
-        Log.i(TAG, "checkNodeInfo # currentActivityName === " + currentActivityName);
+//        Log.i(TAG, "checkNodeInfo # node1 == null : " + (node1 == null));
+//        Log.i(TAG, "checkNodeInfo # currentActivityName === " + currentActivityName);
         //聊天窗口的回话列表中，有可领取的红包
         if (node1 != null && (currentActivityName.contains(WECHAT_LUCKMONEY_CHATTING_ACTIVITY) || currentActivityName.contains(WECHAT_LUCKMONEY_GENERAL_ACTIVITY))) {
             String excludeWords = sharedPreferences.getString("pref_watch_exclude_words", "");
@@ -427,12 +424,10 @@ public class HongbaoService extends AccessibilityService implements SharedPrefer
         }
 
         /* 戳开红包，红包还没抢完，遍历节点匹配“拆红包” */
-        Log.i(TAG, "findOpenButton ======================>>>>>>>>>>>>> from checkNodeInfo");
-//        findProgressBar(this.rootNodeInfo)
         AccessibilityNodeInfo node2 = findOpenButton(this.rootNodeInfo);
-        Log.i(TAG, "checkNodeInfo # node2 == null : " + (node2 == null));
+//        Log.i(TAG, "checkNodeInfo # node2 == null : " + (node2 == null));
         if (node2 != null && "android.widget.Button".equals(node2.getClassName()) && currentActivityName.contains(WECHAT_LUCKMONEY_RECEIVE_ACTIVITY)) {
-            Log.i(TAG, "checkNodeInfo # node2.getClassName === " + node2.getClassName());
+            Log.i(TAG, "checkNodeInfo # 找到“開”按钮，node2.getClassName === " + node2.getClassName());
             mUnpackNode = node2;
             mUnpackCount += 1;
             return;
@@ -460,27 +455,6 @@ public class HongbaoService extends AccessibilityService implements SharedPrefer
 
 //        isLastOutOrExpire = false;
     }
-
-    private boolean findProgressBar(AccessibilityNodeInfo node) {
-        if (node == null)
-            return false;
-
-        //非layout元素
-        if (node.getChildCount() == 0) {
-            if ("android.widget.ProgressBar".equals(node.getClassName()))
-                return true;
-            else
-                return false;
-        }
-        boolean result = false;
-        for (int i = 0; i < node.getChildCount(); i++) {
-            if (findProgressBar(node.getChild(i))) {
-
-            }
-        }
-        return false;
-    }
-
 
     private void sendComment() {
         try {
@@ -552,6 +526,7 @@ public class HongbaoService extends AccessibilityService implements SharedPrefer
 
     @Override
     public void onServiceConnected() {
+        Log.i(TAG, "↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓ 服务启动了 ↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓");
         super.onServiceConnected();
         this.watchFlagsFromPreference();
     }
@@ -575,6 +550,8 @@ public class HongbaoService extends AccessibilityService implements SharedPrefer
 
     @Override
     public void onDestroy() {
+        Log.i(TAG, "↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑ 服务结束了 ↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑");
+
         this.powerUtil.handleWakeLock(false);
         super.onDestroy();
     }

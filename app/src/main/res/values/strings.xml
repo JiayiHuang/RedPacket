@@ -57,7 +57,7 @@
     <string name="back_from_receive_list">从红包领取详情页自动返回</string>
     <string name="back_from_receive_list_summary">勾中，可以返回列表继续抢红包，否则停留在领取详情页</string>
     <string name="back_from_receive_list_delay">从红包领取详情页的延迟返回时间</string>
-    <string name="back_from_receive_list_delay_summary">默认100(单位毫秒)</string>
+    <string name="back_from_receive_list_delay_summary">默认200(单位毫秒)</string>
     <string name="activity_name_receive_list">红包领取详情页的ActivityName</string>
     <string name="activity_name_wait_2_open">红包开启页的ActivityName</string>
     <string name="activity_name_wait_open_title">红包开启页ActivityName</string>
