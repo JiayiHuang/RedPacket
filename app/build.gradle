@@ -23,19 +23,13 @@ android {
 //            keyAlias project.hasProperty("ALIAS_NAME") ? ALIAS_NAME : System.getenv("ALIAS_NAME")
 //            keyPassword project.hasProperty("ALIAS_PASS") ? ALIAS_PASS : System.getenv("ALIAS_PASS")
 //        }
-        release {
-            keyAlias 'hjy'
-            keyPassword 'hjy666'
-            storeFile file('./HJY_Keystore_hjy666.jks')
-            storePassword 'hjy666'
-        }
     }
 
     buildTypes {
         release {
             minifyEnabled true
             proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
-            signingConfig signingConfigs.release
+//            signingConfig signingConfigs.release
         }
     }
     productFlavors {
