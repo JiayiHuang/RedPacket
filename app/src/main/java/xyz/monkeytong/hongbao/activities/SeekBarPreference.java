@@ -7,6 +7,7 @@ import android.util.AttributeSet;
 import android.view.View;
 import android.widget.SeekBar;
 import android.widget.TextView;
+
 import xyz.monkeytong.hongbao.R;
 
 /**
@@ -50,12 +51,12 @@ public class SeekBarPreference extends DialogPreference {
         }
 
         this.textView = (TextView) view.findViewById(R.id.pref_seekbar_textview);
-        setHintText(0);
+        setHintText(delay / 10f);
 
         this.seekBar.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
             @Override
             public void onProgressChanged(SeekBar seekBar, int i, boolean b) {
-                setHintText(i);
+                setHintText(i / 10f);
             }
 
             @Override
@@ -80,7 +81,7 @@ public class SeekBarPreference extends DialogPreference {
         super.onDialogClosed(positiveResult);
     }
 
-    private void setHintText(int delay) {
+    private void setHintText(float delay) {
         if (delay == 0) {
             this.textView.setText(getContext().getString(R.string.delay_instantly) + hintText);
         } else {

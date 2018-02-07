@@ -24,7 +24,6 @@ import android.widget.TextView;
 import android.widget.Toast;
 
 import com.apkfuns.logutils.LogUtils;
-import com.tencent.bugly.Bugly;
 
 import java.util.List;
 
@@ -48,7 +47,6 @@ public class MainActivity extends Activity implements AccessibilityManager.Acces
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         //CrashReport.initCrashReport(getApplicationContext(), "900019352", false);
-        Bugly.init(getApplicationContext(), "900019352", false);
         setContentView(R.layout.activity_main);
         pluginStatusText = (TextView) findViewById(R.id.layout_control_accessibility_text);
         pluginStatusIcon = (ImageView) findViewById(R.id.layout_control_accessibility_icon);
@@ -59,6 +57,7 @@ public class MainActivity extends Activity implements AccessibilityManager.Acces
 
         //监听AccessibilityService 变化
         accessibilityManager = (AccessibilityManager) getSystemService(Context.ACCESSIBILITY_SERVICE);
+        assert accessibilityManager != null;
         accessibilityManager.addAccessibilityStateChangeListener(this);
         if (ContextCompat.checkSelfPermission(MainActivity.this,
                 Manifest.permission.WRITE_EXTERNAL_STORAGE)

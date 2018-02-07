@@ -17,12 +17,8 @@ android {
     }
 
     signingConfigs {
-//        releaseConfig {
-//            storeFile file("HJY_Keystore_hjy666.jks")
-//            storePassword project.hasProperty("KEYSTORE_PASS") ? KEYSTORE_PASS : System.getenv("KEYSTORE_PASS")
-//            keyAlias project.hasProperty("ALIAS_NAME") ? ALIAS_NAME : System.getenv("ALIAS_NAME")
-//            keyPassword project.hasProperty("ALIAS_PASS") ? ALIAS_PASS : System.getenv("ALIAS_PASS")
-//        }
+        release {
+        }
     }
 
     buildTypes {
@@ -39,10 +35,6 @@ android {
 
 dependencies {
     compile fileTree(include: ['*.jar'], dir: 'libs')
-    compile 'com.tencent.bugly:crashreport_upgrade:latest.release'
-    //其中latest.release指代最新版本号，也可以指定明确的版本号，例如1.0.1
-    compile 'com.tencent.bugly:nativecrashreport:latest.release'
-    //其中latest.release指代最新版本号，也可以指定明确的版本号，例如2.2.0
     compile 'com.android.support:support-v4:25.1.0'
     compile 'com.android.support:appcompat-v7:25.1.0'
 

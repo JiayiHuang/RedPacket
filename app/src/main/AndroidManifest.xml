@@ -31,9 +31,6 @@
                   android:theme="@style/Base.Theme.AppCompat.Light"
                   android:launchMode="standard">
         </activity>
-        <activity
-            android:name="com.tencent.bugly.beta.ui.BetaActivity"
-            android:theme="@android:style/Theme.Translucent" />
         <service
                 android:name="xyz.monkeytong.hongbao.services.HongbaoService"
                 android:permission="android.permission.BIND_ACCESSIBILITY_SERVICE">

@@ -104,7 +104,8 @@ public class HongbaoService extends AccessibilityService implements SharedPrefer
     private boolean isWatchNotification = true;
     private boolean isWatchList = true;
     private boolean isAutoOpenRedPacket = true;
-    private int timeDelay = 200;
+    private int timeDelayBack2List = 200;
+    private int timeDelayOpenPacket = 0;
 
     @Override
     public void onAccessibilityEvent(AccessibilityEvent event) {
@@ -121,7 +122,7 @@ public class HongbaoService extends AccessibilityService implements SharedPrefer
                 public void run() {
                     back2List();
                 }
-            }, timeDelay);
+            }, timeDelayBack2List);
             return;
         }
 
@@ -189,32 +190,31 @@ public class HongbaoService extends AccessibilityService implements SharedPrefer
         /* 如果戳开但还未领取 */
 //        Log.i(TAG, "watchChat # mUnpackCount === " + mUnpackCount + ", mUnpackNode == null : " + (mUnpackNode == null));
         if (mUnpackCount == 1 && (mUnpackNode != null)) {
-            int delayFlag = sharedPreferences.getInt("pref_open_delay", 0) * 1000;
-            new android.os.Handler().postDelayed(
-                    new Runnable() {
-                        public void run() {
-                            try {
-                                openPacket();
-                            } catch (Exception e) {
-                                mHasToDoRedPacket = false;
-                                mLuckyMoneyPicked = false;
-                                mUnpackCount = 0;
-                            }
-                        }
-                    },
-                    delayFlag);
+            openPacket();
         }
     }
 
     private void openPacket() {
         Log.i(TAG, "openPacket: -----------------------------------------------------------");
-        if (mUnpackNode != null) {
-            boolean b = mUnpackNode.performAction(AccessibilityNodeInfo.ACTION_CLICK);
-            Log.i(TAG, "openPacket: node - performAction == " + b);
-            if (b)
-                return;
-        }
-        simulateClick();
+        new android.os.Handler().postDelayed(
+                new Runnable() {
+                    public void run() {
+                        try {
+                            if (mUnpackNode != null) {
+                                boolean b = mUnpackNode.performAction(AccessibilityNodeInfo.ACTION_CLICK);
+                                Log.i(TAG, "openPacket: node - performAction == " + b);
+                                if (b)
+                                    return;
+                            }
+                            simulateClick();
+                        } catch (Exception e) {
+                            mHasToDoRedPacket = false;
+                            mLuckyMoneyPicked = false;
+                            mUnpackCount = 0;
+                        }
+                    }
+                },
+                timeDelayOpenPacket);
     }
 
     private void simulateClick() {
@@ -527,11 +527,11 @@ public class HongbaoService extends AccessibilityService implements SharedPrefer
         String prfTimeDelay = sharedPreferences.getString("pref_back_from_receive_list_delay", "200");
         try {
             int anInt = Integer.parseInt(prfTimeDelay);
-            timeDelay = anInt <= 200 ? 200 : anInt;
+            timeDelayBack2List = anInt <= 200 ? 200 : anInt;
         } catch (Exception ignored) {
 
         } finally {
-            timeDelay = timeDelay <= 200 ? 200 : timeDelay;
+            timeDelayBack2List = timeDelayBack2List <= 200 ? 200 : timeDelayBack2List;
         }
 
         boolean watchNotification = sharedPreferences.getBoolean("pref_watch_notification", false);
@@ -559,10 +559,15 @@ public class HongbaoService extends AccessibilityService implements SharedPrefer
             ACTIVITY_NAME_DETAIL_LIST = activityNameReceiveList;
         }
 
+
+        int delayTimeOpenPacketFlag = sharedPreferences.getInt("pref_open_delay", 0) * 100;
+        timeDelayOpenPacket = delayTimeOpenPacketFlag < 0 ? 100 : delayTimeOpenPacketFlag;
+
         LogUtils.wtf("初始配置："
                 + "\n\t\t WECHAT_VIEW_OTHERS_CH == " + WECHAT_VIEW_OTHERS_CH
                 + "\n\t\t isBackFromReceiveDetailList == " + isBackFromReceiveDetailList
-                + "\n\t\t timeDelay == " + timeDelay
+                + "\n\t\t timeDelayBack2List == " + timeDelayBack2List
+                + "\n\t\t timeDelayOpenPacket == " + timeDelayOpenPacket
                 + "\n\t\t isWatchNotification == " + isWatchNotification
                 + "\n\t\t isWatchList == " + isWatchList
                 + "\n\t\t isAutoOpenRedPacket == " + isAutoOpenRedPacket
@@ -600,11 +605,11 @@ public class HongbaoService extends AccessibilityService implements SharedPrefer
             String prfTimeDelay = sharedPreferences.getString("pref_back_from_receive_list_delay", "200");
             try {
                 int anInt = Integer.parseInt(prfTimeDelay);
-                timeDelay = anInt <= 200 ? 200 : anInt;
+                timeDelayBack2List = anInt <= 200 ? 200 : anInt;
             } catch (Exception ignored) {
 
             } finally {
-                timeDelay = timeDelay <= 200 ? 200 : timeDelay;
+                timeDelayBack2List = timeDelayBack2List <= 200 ? 200 : timeDelayBack2List;
             }
         } else if (key.equals("pref_watch_notification")) {
             isWatchNotification = sharedPreferences.getBoolean(key, false);
@@ -629,6 +634,9 @@ public class HongbaoService extends AccessibilityService implements SharedPrefer
             } else {
                 ACTIVITY_NAME_DETAIL_LIST = receiveDetailActivityName;
             }
+        } else if (key.equals("pref_open_delay")) {
+            int delayTimeOpenPacketFlag = sharedPreferences.getInt(key, 0) * 100;
+            timeDelayOpenPacket = delayTimeOpenPacketFlag < 0 ? 100 : delayTimeOpenPacketFlag;
         }
 
     }
