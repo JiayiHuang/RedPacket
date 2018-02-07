@@ -87,5 +87,10 @@
             android:layout="@layout/preference_checkbox"
             android:summary="@string/activity_name_summary"
             android:title="@string/activity_name_receive_list_title" />
+        <EditTextPreference
+            android:key="pref_red_packet_key_words"
+            android:layout="@layout/preference_checkbox"
+            android:summary="@string/red_packet_key_words_summary"
+            android:title="@string/red_packet_key_words_title" />
     </PreferenceCategory>
 </PreferenceScreen>

@@ -44,7 +44,7 @@
     <string name="check_new_version">检查新版本</string>
     <string name="help_and_feedback">帮助与反馈</string>
     <string name="help_hint">前往GitHub项目主页提交issue</string>
-    <string name="labs">实验功能</string>
+    <string name="labs">实验功能(重新开启服务生效)</string>
     <string name="snatch_on_lockscreen">息屏抢红包</string>
     <string name="snatch_on_lockscreen_hint">保持30分钟后台活跃,可能会极大增加电量消耗,请谨慎使用</string>
     <string name="auto_reply">拆开红包后自动回复</string>
@@ -63,4 +63,6 @@
     <string name="activity_name_wait_open_title">红包开启页ActivityName</string>
     <string name="activity_name_receive_list_title">红包领取详情页ActivityName</string>
     <string name="activity_name_summary">可配置唯一字符串,可进入/sdcard/HJY/logs目录查看</string>
+    <string name="red_packet_key_words_title">新到红包标识</string>
+    <string name="red_packet_key_words_summary">现为[领取红包]，防止微信修改，提前配置</string>
 </resources>

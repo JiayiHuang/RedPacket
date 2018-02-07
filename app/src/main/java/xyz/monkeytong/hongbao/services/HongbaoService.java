@@ -34,7 +34,7 @@ public class HongbaoService extends AccessibilityService implements SharedPrefer
     private static final String WECHAT_BETTER_LUCK_CH = "手慢了，红包派完了";
     private static final String WECHAT_EXPIRES_CH = "已超过24小时";
     private static final String WECHAT_VIEW_SELF_CH = "查看红包";
-    private static final String WECHAT_VIEW_OTHERS_CH = "领取红包";
+    private static String WECHAT_VIEW_OTHERS_CH = "领取红包";
     private static final String WECHAT_NOTIFICATION_TIP = "[微信红包]";// 通知栏内，有红包时，必有的内容在头部
     //    private static final String WECHAT_LUCKMONEY_RECEIVE_ACTIVITY = "LuckyMoneyReceiveUI";
     private static final String WECHAT_LUCKMONEY_RECEIVE_ACTIVITY = "com.tencent.mm";
@@ -100,29 +100,22 @@ public class HongbaoService extends AccessibilityService implements SharedPrefer
 
     private PowerUtil powerUtil;
     private SharedPreferences sharedPreferences;
+    private boolean isBackFromReceiveDetailList = true;
+    private boolean isWatchNotification = true;
+    private boolean isWatchList = true;
+    private boolean isAutoOpenRedPacket = true;
+    private int timeDelay = 200;
 
     @Override
     public void onAccessibilityEvent(AccessibilityEvent event) {
         if (sharedPreferences == null) return;
-        Log.i(TAG, ">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>> New Event <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<");
+        this.rootNodeInfo = getRootInActiveWindow();
+        Log.i(TAG, ">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>> New Event(RootNodeInfo==null ? " + (rootNodeInfo == null) + ") <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<");
 
         setCurrentActivityName(event);
 
-        checkActivityNameChangedOrNot();
-
-
         // 是否从红包领取详情页返回
-        if (sharedPreferences.getBoolean("pref_back_from_receive_list", true)
-                && event.getClassName().toString().contains(ACTIVITY_NAME_DETAIL_LIST)) {
-            String timeDelayStr = sharedPreferences.getString("pref_back_from_receive_list_delay", "200");
-            int timeDelay = 200;
-            try {
-                timeDelay = Integer.parseInt(timeDelayStr);
-            } catch (Exception ignored) {
-
-            } finally {
-                timeDelay = timeDelay <= 200 ? 200 : timeDelay;
-            }
+        if (isBackFromReceiveDetailList && event.getClassName().toString().contains(ACTIVITY_NAME_DETAIL_LIST)) {
             new Handler().postDelayed(new Runnable() {
                 @Override
                 public void run() {
@@ -131,57 +124,41 @@ public class HongbaoService extends AccessibilityService implements SharedPrefer
             }, timeDelay);
             return;
         }
-        /* 检测通知消息 */
+
         if (!mHasToDoRedPacket) {
-            // pref_watch_notification：读取消息通知中的红包提示并进入聊天页
-            if (sharedPreferences.getBoolean("pref_watch_notification", false) && watchNotifications(event))
+            // 检测通知消息
+            if (isWatchNotification && watchNotifications(event))
                 return;
-            // pref_watch_list：读取聊天列表中的红包提示并进入聊天页 -- 新版本失效
-//            if (sharedPreferences.getBoolean("pref_watch_list", false) && watchList(event)) return;
+            //  API>23 失效
+//            if (isWatchList && watchList(event)) return;
             mListMutex = false;
         }
-        if (currentActivityName.contains(ACTIVITY_NAME_WAIT_OPEN)
-                && android.os.Build.VERSION.SDK_INT > 23) {
-            //当前在红包待开页面，去拆红包
-//            this.rootNodeInfo = getRootInActiveWindow();
-//            Log.i(TAG, "onAccessibilityEvent: ==== rootNodeInfo == null ? " + (rootNodeInfo == null));
-            // 从列表页打开红包 --> 红包开启页 获取不到 Node
-//            checkNodeInfo(event);
-            openPacket();
 
+        //当前在红包待开页面，去拆红包
+        if (currentActivityName.contains(ACTIVITY_NAME_WAIT_OPEN)) {
+            if (android.os.Build.VERSION.SDK_INT > 23) {
+                openPacket();
+                return;
+                // 从列表页打开红包 --> 红包开启页 获取不到 Node api>23的反正获取不到
+            } else if (rootNodeInfo != null) {
+                checkNodeInfo(event);
+                openPacket();
+            }
+            return;
         }
         if (!mIsWatching) {
             mIsWatching = true;
-            // pref_watch_list：自动拆红包
-//            if (sharedPreferences.getBoolean("pref_watch_chat", false))
-//                watchChat(event); // 根据配置判断是否自动拆红包
-            watchChat(event); // 一直自动拆红包
+            // 自动拆红包
+            if (isAutoOpenRedPacket)
+                watchChat(event); // 根据配置判断是否自动拆红包
+//            watchChat(event); // 一直自动拆红包
             mIsWatching = false;
         }
 
     }
 
-    /**
-     * 23版本以上，微信红包领取相关页面，调用 getRootInActiveWindow 方式获取不到 Node，
-     * 所以采用匹配ActivityName的方式来判断当前页面属于哪个阶段。
-     */
-    private void checkActivityNameChangedOrNot() {
-        String waitOpenActivityName = sharedPreferences.getString("pref_activity_name_wait_open", "");
-        String receiveDetailActivityName = sharedPreferences.getString("pref_activity_name_receive_list", "");
-        if (!TextUtils.isEmpty(waitOpenActivityName)) {
-            LogUtils.wtf("ACTIVITY_NAME_WAIT_OPEN : " + ACTIVITY_NAME_WAIT_OPEN + "change to ===>> " + waitOpenActivityName);
-            ACTIVITY_NAME_WAIT_OPEN = waitOpenActivityName;
-        }
-        if (!TextUtils.isEmpty(receiveDetailActivityName)) {
-            LogUtils.wtf("ACTIVITY_NAME_DETAIL_LIST : " + ACTIVITY_NAME_DETAIL_LIST + "change to ===>> " + receiveDetailActivityName);
-            ACTIVITY_NAME_DETAIL_LIST = receiveDetailActivityName;
-        }
-    }
-
-
     private void watchChat(AccessibilityEvent event) {
         this.rootNodeInfo = getRootInActiveWindow();
-        Log.i(TAG, "watchChat: ------------------------------------------------- rootNodeInfo==null?" + (rootNodeInfo == null));
         int packNum = getPackNum(WECHAT_VIEW_OTHERS_CH);
         if (currentActivityName.contains("LauncherUI")) {
 //            Log.d(TAG, "packNum == " + packNum + ", prePackNum == " + currentPackNum + ", isLastOutOrExpire == " + isLastOutOrExpire);
@@ -529,6 +506,70 @@ public class HongbaoService extends AccessibilityService implements SharedPrefer
         Log.i(TAG, "↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓ 服务启动了 ↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓");
         super.onServiceConnected();
         this.watchFlagsFromPreference();
+        getSP();
+
+    }
+
+    private void getSP() {
+        if (sharedPreferences == null)
+            return;
+
+        String redPacketKeyWords = sharedPreferences.getString("pref_red_packet_key_words", "");
+        if (!TextUtils.isEmpty(redPacketKeyWords)) {
+            WECHAT_VIEW_OTHERS_CH = redPacketKeyWords;
+        }
+
+        boolean backFromReceiveList = sharedPreferences.getBoolean("pref_back_from_receive_list", true);
+        if (!backFromReceiveList) {
+            isBackFromReceiveDetailList = false;
+        }
+
+        String prfTimeDelay = sharedPreferences.getString("pref_back_from_receive_list_delay", "200");
+        try {
+            int anInt = Integer.parseInt(prfTimeDelay);
+            timeDelay = anInt <= 200 ? 200 : anInt;
+        } catch (Exception ignored) {
+
+        } finally {
+            timeDelay = timeDelay <= 200 ? 200 : timeDelay;
+        }
+
+        boolean watchNotification = sharedPreferences.getBoolean("pref_watch_notification", false);
+        if (!watchNotification) {
+            isWatchNotification = false;
+        }
+
+        boolean watchList = sharedPreferences.getBoolean("pref_watch_list", false);
+        if (!watchList) {
+            isWatchList = false;
+        }
+
+        boolean watchChat = sharedPreferences.getBoolean("pref_watch_chat", false);
+        if (!watchChat) {
+            isAutoOpenRedPacket = false;
+        }
+
+        String activityNameWaitOpen = sharedPreferences.getString("pref_activity_name_wait_open", "");
+        if (!TextUtils.isEmpty(activityNameWaitOpen)) {
+            ACTIVITY_NAME_WAIT_OPEN = activityNameWaitOpen;
+        }
+
+        String activityNameReceiveList = sharedPreferences.getString("pref_activity_name_receive_list", "");
+        if (!TextUtils.isEmpty(activityNameReceiveList)) {
+            ACTIVITY_NAME_DETAIL_LIST = activityNameReceiveList;
+        }
+
+        LogUtils.wtf("初始配置："
+                + "\n\t\t WECHAT_VIEW_OTHERS_CH == " + WECHAT_VIEW_OTHERS_CH
+                + "\n\t\t isBackFromReceiveDetailList == " + isBackFromReceiveDetailList
+                + "\n\t\t timeDelay == " + timeDelay
+                + "\n\t\t isWatchNotification == " + isWatchNotification
+                + "\n\t\t isWatchList == " + isWatchList
+                + "\n\t\t isAutoOpenRedPacket == " + isAutoOpenRedPacket
+                + "\n\t\t isWatchNotification == " + isWatchNotification
+                + "\n\t\t ACTIVITY_NAME_WAIT_OPEN == " + ACTIVITY_NAME_WAIT_OPEN
+                + "\n\t\t ACTIVITY_NAME_DETAIL_LIST == " + ACTIVITY_NAME_DETAIL_LIST
+        );
     }
 
     private void watchFlagsFromPreference() {
@@ -542,19 +583,63 @@ public class HongbaoService extends AccessibilityService implements SharedPrefer
 
     @Override
     public void onSharedPreferenceChanged(SharedPreferences sharedPreferences, String key) {
+        Log.i(TAG, "onSharedPreferenceChanged: =====>> sp changed key == " + key);
         if (key.equals("pref_watch_on_lock")) {
             Boolean changedValue = sharedPreferences.getBoolean(key, false);
             this.powerUtil.handleWakeLock(changedValue);
+        } else if (key.equals("pref_red_packet_key_words")) {
+            String string = sharedPreferences.getString(key, "");
+            if (TextUtils.isEmpty(string)) {
+                WECHAT_VIEW_OTHERS_CH = "领取红包";
+            } else {
+                WECHAT_VIEW_OTHERS_CH = string;
+            }
+        } else if (key.equals("pref_back_from_receive_list")) {
+            isBackFromReceiveDetailList = sharedPreferences.getBoolean(key, true);
+        } else if (key.equals("pref_back_from_receive_list_delay")) {
+            String prfTimeDelay = sharedPreferences.getString("pref_back_from_receive_list_delay", "200");
+            try {
+                int anInt = Integer.parseInt(prfTimeDelay);
+                timeDelay = anInt <= 200 ? 200 : anInt;
+            } catch (Exception ignored) {
+
+            } finally {
+                timeDelay = timeDelay <= 200 ? 200 : timeDelay;
+            }
+        } else if (key.equals("pref_watch_notification")) {
+            isWatchNotification = sharedPreferences.getBoolean(key, false);
+        } else if (key.equals("pref_watch_list")) {//pref_watch_list：读取聊天列表中的红包提示并进入聊天页
+            isWatchList = sharedPreferences.getBoolean(key, false);
+        } else if (key.equals("pref_watch_chat")) {
+            isAutoOpenRedPacket = sharedPreferences.getBoolean(key, true);
+
+            // API >23，微信红包领取相关页面，调用 getRootInActiveWindow 方式获取不到 Node，
+            // 所以采用匹配ActivityName的方式来判断当前页面属于哪个阶段。
+        } else if (key.equals("pref_activity_name_wait_open")) {
+            String waitOpenActivityName = sharedPreferences.getString(key, "");
+            if (TextUtils.isEmpty(waitOpenActivityName)) {
+                ACTIVITY_NAME_WAIT_OPEN = "LuckyMoneyReceiveUI";
+            } else {
+                ACTIVITY_NAME_WAIT_OPEN = waitOpenActivityName;
+            }
+        } else if (key.equals("pref_activity_name_receive_list")) {
+            String receiveDetailActivityName = sharedPreferences.getString(key, "");
+            if (TextUtils.isEmpty(receiveDetailActivityName)) {
+                ACTIVITY_NAME_DETAIL_LIST = "LuckyMoneyDetailUI";
+            } else {
+                ACTIVITY_NAME_DETAIL_LIST = receiveDetailActivityName;
+            }
         }
+
     }
 
     @Override
     public void onDestroy() {
         Log.i(TAG, "↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑ 服务结束了 ↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑");
-
         this.powerUtil.handleWakeLock(false);
         super.onDestroy();
     }
+
 
     private String generateCommentString() {
         if (!signature.others) return null;

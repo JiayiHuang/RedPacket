@@ -61,6 +61,7 @@ public class GeneralSettingsFragment extends PreferenceFragment {
             }
         });
 
+/*
         Preference timeDelayPref = findPreference("pref_back_from_receive_list_delay");
         String timeDelaySummary = getResources().getString(R.string.back_from_receive_list_delay_summary);
         String timeDelayValue = PreferenceManager.getDefaultSharedPreferences(getActivity()).getString("pref_back_from_receive_list_delay", "");
@@ -78,6 +79,7 @@ public class GeneralSettingsFragment extends PreferenceFragment {
                 return true;
             }
         });
+*/
 
 
 
