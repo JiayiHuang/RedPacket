@@ -65,4 +65,19 @@
     <string name="activity_name_summary">可配置唯一字符串,可进入/sdcard/HJY/logs目录查看</string>
     <string name="red_packet_key_words_title">新到红包标识</string>
     <string name="red_packet_key_words_summary">现为[领取红包]，防止微信修改，提前配置</string>
+    <string name="project_faq">FAQ:</string>
+    <string name="project_faq_details">
+        0. <b>最最重要： 所有监测都不能使手机处于息屏状态，可以手动设置手机显示为常量，或在开发者选项里面设置充电常量。</b>\n\n
+        1. 部分机型（如：MI5），使用一段时间或连续开启、关闭多次后，无法正常开启，需要重启机器。\n\n
+        2. 可以配置延迟开启红包时间，建议1~2秒，自身就有3秒以上的延迟。\n\n
+        3. 设置里面的屏蔽关键字可以使用，防止测挂。\n\n
+        4. 建议不要一直开启，需要使用的是再开启服务。\n\n
+        5. 可监测环境：\n\t\t ①：通知栏群红包通知 > 自动打开并开启，然后会停留在会话界面。\n\t\t ②：会话界面，红包自动抢。\n\t\t 不支持在会话列表页的监测。\n\n
+        6. 挂机监测时，在设置内可开启提示音设置。有红包时会播放提示音，提示音只能在设置也关闭，或退出程序（本程序）。\n\n
+        7. 可以监测所有群，不要手动干预，适合用于挂机操作。\n\n
+    </string>
+    <string name="auto_watch_all_chat_title">自动操作，监测所有群</string>
+    <string name="auto_watch_all_chat_summary">自动操作，有红包时，可能无法正常使用微信，慎用</string>
+    <string name="play_audio_title">有红包时是否播放提示音</string>
+    <string name="play_audio_summary">关闭提示音只能从这儿关闭，或退出程序</string>
 </resources>

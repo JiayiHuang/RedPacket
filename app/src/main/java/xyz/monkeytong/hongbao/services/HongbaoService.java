@@ -9,6 +9,7 @@ import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
 import android.graphics.Path;
 import android.graphics.Rect;
+import android.media.MediaPlayer;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Parcelable;
@@ -23,9 +24,17 @@ import com.apkfuns.logutils.LogUtils;
 
 import java.util.List;
 
+import xyz.monkeytong.hongbao.R;
 import xyz.monkeytong.hongbao.utils.HongbaoSignature;
 import xyz.monkeytong.hongbao.utils.PowerUtil;
 
+/**
+ * Current Environments:
+ * Version WeChat: 6.6.2
+ * Phone Brand : MI 5
+ * Version MIUI : 9.2 stable
+ * Version Android: 7.0
+ */
 public class HongbaoService extends AccessibilityService implements SharedPreferences.OnSharedPreferenceChangeListener {
     private static final String TAG = "HongbaoService";
     private static final String WECHAT_DETAILS_EN = "Details";
@@ -104,6 +113,8 @@ public class HongbaoService extends AccessibilityService implements SharedPrefer
     private boolean isWatchNotification = true;
     private boolean isWatchList = true;
     private boolean isAutoOpenRedPacket = true;
+    private boolean isAutoWatchAllGroup = false;
+    private boolean isPlayAudio;
     private int timeDelayBack2List = 200;
     private int timeDelayOpenPacket = 0;
 
@@ -121,6 +132,7 @@ public class HongbaoService extends AccessibilityService implements SharedPrefer
                 @Override
                 public void run() {
                     back2List();
+                    back2Desktop();
                 }
             }, timeDelayBack2List);
             return;
@@ -215,6 +227,30 @@ public class HongbaoService extends AccessibilityService implements SharedPrefer
                     }
                 },
                 timeDelayOpenPacket);
+    }
+
+    int timeCount = 0;
+
+    private void back2Desktop() {
+        if (isAutoWatchAllGroup) {
+            timeCount = 0;
+            final Handler handler = new Handler();
+            Log.i(TAG, "back2Desktop ===>> timeCount == " + timeCount + ", timeStart == " + System.currentTimeMillis());
+            Runnable backRunnable = new Runnable() {
+                @Override
+                public void run() {
+                    boolean result = performGlobalAction(GLOBAL_ACTION_BACK);
+                    if (result) {
+                        timeCount += 1;
+                    }
+                    Log.i(TAG, "back2Desktop ===>> timeCount == " + timeCount + ", result == " + result + ", timeStart == " + System.currentTimeMillis());
+                    if (timeCount < 2) {
+                        handler.postDelayed(this, 400);
+                    }
+                }
+            };
+            handler.postDelayed(backRunnable, 500);
+        }
     }
 
     private void simulateClick() {
@@ -329,13 +365,30 @@ public class HongbaoService extends AccessibilityService implements SharedPrefer
             try {
                 /* 清除signature,避免进入会话后误判 */
                 signature.cleanSignature();
-
+                playAudio();
                 notification.contentIntent.send();
             } catch (PendingIntent.CanceledException e) {
                 e.printStackTrace();
             }
         }
         return true;
+    }
+
+    private MediaPlayer mediaPlayer;
+
+    private void playAudio() {
+        if (isPlayAudio) {
+            releasePlayer();
+            mediaPlayer = MediaPlayer.create(this, R.raw.red_packet_coming);
+            mediaPlayer.setLooping(true);
+            mediaPlayer.start();
+        }
+    }
+
+    private void releasePlayer() {
+        if (mediaPlayer != null) {
+            mediaPlayer.release();
+        }
     }
 
     @Override
@@ -392,6 +445,7 @@ public class HongbaoService extends AccessibilityService implements SharedPrefer
             if (this.signature.generateSignature(rootNodeInfo, node1, excludeWords)) {
                 long eventTime = event.getEventTime();
                 Log.i(TAG, "checkNodeInfo # eventTime === " + eventTime + ", mReceiveNode 可领取的红包 node 赋值");
+                playAudio();
                 mLuckyMoneyReceived = true;
                 mLuckyMoneyPicked = false;
                 mReceiveNode = node1;
@@ -548,6 +602,7 @@ public class HongbaoService extends AccessibilityService implements SharedPrefer
         if (!watchChat) {
             isAutoOpenRedPacket = false;
         }
+        isPlayAudio = sharedPreferences.getBoolean("pref_play_audio", false);
 
         String activityNameWaitOpen = sharedPreferences.getString("pref_activity_name_wait_open", "");
         if (!TextUtils.isEmpty(activityNameWaitOpen)) {
@@ -559,6 +614,7 @@ public class HongbaoService extends AccessibilityService implements SharedPrefer
             ACTIVITY_NAME_DETAIL_LIST = activityNameReceiveList;
         }
 
+        isAutoWatchAllGroup = sharedPreferences.getBoolean("pref_auto_watch_chat_all", false);
 
         int delayTimeOpenPacketFlag = sharedPreferences.getInt("pref_open_delay", 0) * 100;
         timeDelayOpenPacket = delayTimeOpenPacketFlag < 0 ? 100 : delayTimeOpenPacketFlag;
@@ -569,7 +625,9 @@ public class HongbaoService extends AccessibilityService implements SharedPrefer
                 + "\n\t\t timeDelayBack2List == " + timeDelayBack2List
                 + "\n\t\t timeDelayOpenPacket == " + timeDelayOpenPacket
                 + "\n\t\t isWatchNotification == " + isWatchNotification
+                + "\n\t\t isAutoWatchAllGroup == " + isAutoWatchAllGroup
                 + "\n\t\t isWatchList == " + isWatchList
+                + "\n\t\t isPlayAudio == " + isPlayAudio
                 + "\n\t\t isAutoOpenRedPacket == " + isAutoOpenRedPacket
                 + "\n\t\t isWatchNotification == " + isWatchNotification
                 + "\n\t\t ACTIVITY_NAME_WAIT_OPEN == " + ACTIVITY_NAME_WAIT_OPEN
@@ -637,7 +695,15 @@ public class HongbaoService extends AccessibilityService implements SharedPrefer
         } else if (key.equals("pref_open_delay")) {
             int delayTimeOpenPacketFlag = sharedPreferences.getInt(key, 0) * 100;
             timeDelayOpenPacket = delayTimeOpenPacketFlag < 0 ? 100 : delayTimeOpenPacketFlag;
+        } else if (key.equals("pref_play_audio")) {
+            isPlayAudio = sharedPreferences.getBoolean(key, false);
+            if (!isPlayAudio) {
+                releasePlayer();
+            }
+        } else if (key.equals("pref_auto_watch_chat_all")) {
+            isAutoWatchAllGroup = sharedPreferences.getBoolean("pref_auto_watch_chat_all", false);
         }
+
 
     }
 

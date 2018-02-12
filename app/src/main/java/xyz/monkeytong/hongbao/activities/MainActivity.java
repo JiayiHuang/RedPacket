@@ -161,15 +161,7 @@ public class MainActivity extends Activity implements AccessibilityManager.Acces
         Intent webViewIntent = new Intent(this, WebViewActivity.class);
         webViewIntent.putExtra("title", getString(R.string.webview_github_title));
         webViewIntent.putExtra("url", "https://github.com/geeeeeeeeek/WeChatLuckyMoney");
-        startActivity(webViewIntent);
-    }
-
-    public void openUber(View view) {
-        Intent webViewIntent = new Intent(this, WebViewActivity.class);
-        webViewIntent.putExtra("title", getString(R.string.webview_uber_title));
-        String[] couponList = new String[]{"https://dc.tt/oTLtXH2BHsD", "https://dc.tt/ozFJHDnfLky"};
-        int index = (int) (Math.random() * 2);
-        webViewIntent.putExtra("url", couponList[index]);
+        Toast.makeText(this, "原作者项目地址", Toast.LENGTH_SHORT).show();
         startActivity(webViewIntent);
     }
 
